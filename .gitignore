@@ -1,0 +1,6 @@
+secrets.yaml
+.esphome/
+__pycache__/
+/test/
+# локальная копия старого конфига с дашборда, только для справки
+server-sniffer.yaml

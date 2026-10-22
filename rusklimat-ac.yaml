@@ -1,0 +1,70 @@
+esphome:
+  name: rusklimat-ac
+  friendly_name: Кондиционер
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: github://yuschkof/rusklimat-esphome@main
+    components: [rusklimat]
+    refresh: 0s  # пока идёт отладка; для стабильной версии закрепить тег (@v1.0.0) и убрать
+
+logger:
+  level: INFO  # DEBUG — покажет отправляемые команды, VERBOSE — пакеты статуса
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+uart:
+  id: ac_uart
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 9600
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+climate:
+  - platform: rusklimat
+    id: main_ac
+    name: "Кондиционер"
+    uart_id: ac_uart
+    update_interval: 2s
+
+switch:
+  - platform: rusklimat
+    rusklimat_id: main_ac
+    display:
+      name: "Дисплей (Подсветка)"
+      icon: mdi:led-on
+    eco:
+      name: "Эко"
+      icon: mdi:leaf
+    ifeel:
+      name: "iFeel"
+      icon: mdi:thermometer-account
+
+sensor:
+  - platform: wifi_signal
+    name: "Уровень сигнала Wi-Fi"
+    update_interval: 60s
+    entity_category: diagnostic
+
+  - platform: uptime
+    name: "Время работы ESP"
+    update_interval: 60s
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: "Перезагрузка ESP"
+    entity_category: diagnostic
