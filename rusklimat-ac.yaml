@@ -13,7 +13,7 @@ external_components:
     refresh: 0s  # пока идёт отладка; для стабильной версии закрепить тег (@v1.0.0) и убрать
 
 logger:
-  level: INFO  # DEBUG — покажет отправляемые команды, VERBOSE — пакеты статуса
+  level: INFO  # Поставь DEBUG, если понадобятся подробные логи ACK
 
 api:
 
@@ -38,22 +38,89 @@ climate:
     id: main_ac
     name: "Кондиционер"
     uart_id: ac_uart
-    update_interval: 2s
+    display_switch: sw_display
+    ionizer_switch: sw_ionizer
+    sleep_switch: sw_sleep
+    turbo_switch: sw_turbo
+    timer_number: num_timer
+    timer_remaining_sensor: sens_timer_remaining
 
+# restore_mode: DISABLED обязателен: по умолчанию (ALWAYS_OFF) при загрузке ESP
+# выполняется turn_off_action, и в кондиционер уходит команда, которая его выключает.
+# Состояние переключателей приходит из статуса кондиционера.
 switch:
-  - platform: rusklimat
-    rusklimat_id: main_ac
-    display:
-      name: "Дисплей (Подсветка)"
-      icon: mdi:led-on
-    eco:
-      name: "Эко"
-      icon: mdi:leaf
-    ifeel:
-      name: "iFeel"
-      icon: mdi:thermometer-account
+  - platform: template
+    id: sw_display
+    name: "Дисплей (Подсветка)"
+    icon: mdi:led-on
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_display(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_display(false);
+
+  - platform: template
+    id: sw_ionizer
+    name: "Ионизатор (Листочек)"
+    icon: mdi:leaf
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_ionizer(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_ionizer(false);
+
+  - platform: template
+    id: sw_sleep
+    name: "Сон"
+    icon: mdi:power-sleep
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_sleep(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_sleep(false);
+
+  - platform: template
+    id: sw_turbo
+    name: "Турбо"
+    icon: mdi:fan-plus
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_turbo(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_turbo(false);
+
+number:
+  - platform: template
+    id: num_timer
+    name: "Таймер (часы)"
+    icon: mdi:timer-cog-outline
+    unit_of_measurement: "ч"
+    min_value: 0
+    max_value: 24
+    step: 1
+    mode: slider
+    set_action:
+      - lambda: |-
+          id(main_ac).set_timer_hours(x);
 
 sensor:
+  - platform: template
+    id: sens_timer_remaining
+    name: "Остаток таймера"
+    icon: mdi:timer-sand
+    unit_of_measurement: "мин"
+    accuracy_decimals: 0
+    device_class: duration
+    state_class: measurement
+
   - platform: wifi_signal
     name: "Уровень сигнала Wi-Fi"
     update_interval: 60s

@@ -4,3 +4,5 @@ __pycache__/
 /test/
 # локальная копия старого конфига с дашборда, только для справки
 server-sniffer.yaml
+# копия my_components с сервера, источник для components/
+my_components/
