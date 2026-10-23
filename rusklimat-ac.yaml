@@ -41,8 +41,8 @@ climate:
     display_switch: sw_display
     ionizer_switch: sw_ionizer
     sleep_switch: sw_sleep
-    # Турбо — в списке скоростей вентилятора. Отдельный переключатель
-    # по-прежнему можно подключить через turbo_switch.
+    quiet_switch: sw_quiet
+    turbo_switch: sw_turbo
     timer_number: num_timer
     timer_remaining_sensor: sens_timer_remaining
 
@@ -52,7 +52,7 @@ climate:
 switch:
   - platform: template
     id: sw_display
-    name: "Дисплей (Подсветка)"
+    name: "Дисплей"
     icon: mdi:led-on
     restore_mode: DISABLED
     turn_on_action:
@@ -64,7 +64,7 @@ switch:
 
   - platform: template
     id: sw_ionizer
-    name: "Ионизатор (Листочек)"
+    name: "Ионизатор"
     icon: mdi:leaf
     restore_mode: DISABLED
     turn_on_action:
@@ -85,6 +85,32 @@ switch:
     turn_off_action:
       - lambda: |-
           id(main_ac).set_sleep(false);
+
+  - platform: template
+    id: sw_quiet
+    # Не просто «Тихий»: ESPHome заменяет кириллицу на «_», и «Тихий» совпал бы с «Турбо» (оба «_____»).
+    # Имена переключателей должны различаться по длине или содержать латиницу/цифры.
+    name: "Тихий режим"
+    icon: mdi:volume-off
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_quiet(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_quiet(false);
+
+  - platform: template
+    id: sw_turbo
+    name: "Турбо"
+    icon: mdi:fan-plus
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_turbo(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_turbo(false);
 
 number:
   - platform: template

@@ -12,7 +12,6 @@
 #include <string>
 #include <cstdio>
 #include <cmath>
-#include <cstring>
 
 namespace esphome {
 namespace rusklimat {
@@ -22,28 +21,22 @@ static const char *const TAG = "rusklimat";
 // Байт [8] — битовая маска дополнительных функций. Биты независимы и могут стоять одновременно.
 static constexpr uint8_t B8_SLEEP = 0x01;    // Сон
 static constexpr uint8_t B8_IONIZER = 0x02;     // Листочек (ионизатор)
-static constexpr uint8_t B8_QUIET = 0x04;    // Тихий (в HA — режим вентилятора QUIET)
+static constexpr uint8_t B8_QUIET = 0x04;    // Тихий
 static constexpr uint8_t B8_TURBO = 0x08;    // Турбо
 static constexpr uint8_t B8_DISPLAY = 0x10;  // Подсветка дисплея
 static constexpr uint8_t B8_KNOWN = B8_SLEEP | B8_IONIZER | B8_QUIET | B8_TURBO | B8_DISPLAY;
-
-// Турбо показываем в HA как дополнительную скорость вентилятора (custom fan mode), он исключает Тихий и Сон.
-// Сон — отдельный переключатель: он работает вместе с Тихим и с любой обычной скоростью.
-static const char *const FAN_TURBO = "Турбо";
 
 // Пауза внутри кадра дольше этого времени считается обрывом: 22 байта на 9600 бод идут ~23 мс.
 static constexpr uint32_t RX_TIMEOUT_MS = 100;
 
 class RusklimatClimate : public climate::Climate, public PollingComponent, public uart::UARTDevice {
  public:
-  RusklimatClimate() : PollingComponent(2000) {
-    // Турбо — доп. скорость вентилятора (флаг 0x08 в байте [8])
-    this->set_supported_custom_fan_modes({FAN_TURBO});
-  }
+  RusklimatClimate() : PollingComponent(2000) {}
 
   void set_display_switch(switch_::Switch *sw) { this->display_switch_ = sw; }
   void set_ionizer_switch(switch_::Switch *sw) { this->ionizer_switch_ = sw; }
   void set_sleep_switch(switch_::Switch *sw) { this->sleep_switch_ = sw; }
+  void set_quiet_switch(switch_::Switch *sw) { this->quiet_switch_ = sw; }
   void set_turbo_switch(switch_::Switch *sw) { this->turbo_switch_ = sw; }
   void set_timer_number(number::Number *num) { this->timer_number_ = num; }
   void set_timer_remaining_sensor(sensor::Sensor *sens) { this->timer_remaining_sensor_ = sens; }
@@ -112,10 +105,9 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
         climate::CLIMATE_MODE_FAN_ONLY,
     });
 
-    // QUIET, Турбо и Сон — флаги 0x04, 0x08 и 0x01 в байте [8] поверх обычной скорости из байта [9].
+    // Тихий, Турбо и Сон — не скорости, а флаги 0x04, 0x08 и 0x01 в байте [8]; они вынесены в отдельные переключатели.
     traits.set_supported_fan_modes({
         climate::CLIMATE_FAN_AUTO,
-        climate::CLIMATE_FAN_QUIET,
         climate::CLIMATE_FAN_LOW,
         climate::CLIMATE_FAN_MEDIUM,
         climate::CLIMATE_FAN_HIGH,
@@ -144,20 +136,10 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
       this->target_temperature = *call.get_target_temperature();
     }
 
-    if (call.has_custom_fan_mode()) {
-      // Турбо — только флаг, реальную скорость в [9] не трогаем. Турбо выключает Тихий и Сон.
-      if (strcmp(call.get_custom_fan_mode().c_str(), FAN_TURBO) == 0) {
-        this->set_flags_(false, true, false);
-      }
-    } else if (call.get_fan_mode().has_value()) {
-      climate::ClimateFanMode fm = *call.get_fan_mode();
-      // Тихий — тоже только флаг; обычная скорость сбрасывает Тихий и Турбо. Сон не трогаем.
-      this->set_flags_(fm == climate::CLIMATE_FAN_QUIET, false, this->sleep_active_);
-      if (fm != climate::CLIMATE_FAN_QUIET) {
-        this->fan_raw_ = this->fan_to_raw_(fm, this->fan_raw_);
-      }
+    if (call.get_fan_mode().has_value()) {
+      this->fan_raw_ = this->fan_to_raw_(*call.get_fan_mode(), this->fan_raw_);
+      this->fan_mode = raw_to_fan_(this->fan_raw_);
     }
-    this->update_fan_mode_();
 
     if (call.get_swing_mode().has_value()) {
       this->swing_mode = *call.get_swing_mode();
@@ -182,16 +164,18 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
   // Сон (бит 0x01 в байте [8]); совместим с Тихим, но выключает Турбо
   void set_sleep(bool state) {
     this->set_flags_(this->quiet_active_, state ? false : this->turbo_active_, state);
-    this->update_fan_mode_();
-    this->publish_state();
     this->send_command_();
   }
 
-  // Турбо (бит 0x08 в байте [8]); в HA также доступен как скорость вентилятора «Турбо»
+  // Тихий (бит 0x04 в байте [8]); совместим со Сном, но выключает Турбо
+  void set_quiet(bool state) {
+    this->set_flags_(state, state ? false : this->turbo_active_, this->sleep_active_);
+    this->send_command_();
+  }
+
+  // Турбо (бит 0x08 в байте [8]); выключает Тихий и Сон
   void set_turbo(bool state) {
     this->set_flags_(state ? false : this->quiet_active_, state, state ? false : this->sleep_active_);
-    this->update_fan_mode_();
-    this->publish_state();
     this->send_command_();
   }
 
@@ -243,6 +227,7 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
   switch_::Switch *display_switch_{nullptr};
   switch_::Switch *ionizer_switch_{nullptr};
   switch_::Switch *sleep_switch_{nullptr};
+  switch_::Switch *quiet_switch_{nullptr};
   switch_::Switch *turbo_switch_{nullptr};
   number::Number *timer_number_{nullptr};
   sensor::Sensor *timer_remaining_sensor_{nullptr};
@@ -254,27 +239,19 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
     this->send_command_();
   }
 
-  // Ставит флаги Тихий / Турбо / Сон и синхронизирует отдельные переключатели, если они есть.
+  // Ставит флаги Тихий / Турбо / Сон и синхронизирует их переключатели, если они есть.
   void set_flags_(bool quiet, bool turbo, bool sleep) {
     this->quiet_active_ = quiet;
     this->turbo_active_ = turbo;
     this->sleep_active_ = sleep;
+    if (this->quiet_switch_ != nullptr) {
+      this->quiet_switch_->publish_state(quiet);
+    }
     if (this->turbo_switch_ != nullptr) {
       this->turbo_switch_->publish_state(turbo);
     }
     if (this->sleep_switch_ != nullptr) {
       this->sleep_switch_->publish_state(sleep);
-    }
-  }
-
-  // Скорость для HA из флагов байта [8] и реальной скорости из [9]. Приоритет: Турбо, Тихий. Сон на скорость не влияет.
-  void update_fan_mode_() {
-    if (this->turbo_active_) {
-      this->set_custom_fan_mode_(FAN_TURBO);
-    } else if (this->quiet_active_) {
-      this->set_fan_mode_(climate::CLIMATE_FAN_QUIET);
-    } else {
-      this->set_fan_mode_(raw_to_fan_(this->fan_raw_));
     }
   }
 
@@ -401,13 +378,13 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
       ESP_LOGW(TAG, "Unknown bits in byte [8]=0x%02X (mask: 0x%02X)", pkt[8], unknown_b8);
     }
 
-    // [9] Скорость вентилятора; режим QUIET определяется флагом [8], а реальная скорость сохраняется
+    // [9] Скорость вентилятора; Тихий / Турбо / Сон — флаги [8] поверх неё
     if (pkt[9] <= 0x03) {
       this->fan_raw_ = pkt[9];
     } else if (changed) {
       ESP_LOGW(TAG, "Unknown fan speed [9]=0x%02X", pkt[9]);
     }
-    this->update_fan_mode_();
+    this->fan_mode = raw_to_fan_(this->fan_raw_);
 
     // [5] и [6] Жалюзи
     const bool v_swing = (pkt[5] == 0x00);
@@ -453,6 +430,9 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
     if (this->sleep_switch_ != nullptr) {
       this->sleep_switch_->publish_state(this->sleep_active_);
     }
+    if (this->quiet_switch_ != nullptr) {
+      this->quiet_switch_->publish_state(this->quiet_active_);
+    }
     if (this->turbo_switch_ != nullptr) {
       this->turbo_switch_->publish_state(this->turbo_active_);
     }
@@ -497,7 +477,7 @@ class RusklimatClimate : public climate::Climate, public PollingComponent, publi
     if (this->sleep_active_) b8 |= B8_SLEEP;
     pkt[8] = b8;
 
-    // [9] Реальная скорость вентилятора (QUIET её не меняет)
+    // [9] Реальная скорость вентилятора (флаги [8] её не меняют)
     pkt[9] = this->fan_raw_;
 
     uint8_t temp = (uint8_t) roundf(this->target_temperature);

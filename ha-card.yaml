@@ -9,8 +9,8 @@ cards:
       - type: climate-hvac-modes
         hvac_modes: [ "off", cool, heat, dry, fan_only, auto ]
       - type: climate-fan-modes
-        style: dropdown
-        fan_modes: [ auto, quiet, low, medium, high, "Турбо" ]
+        style: icons
+        fan_modes: [ auto, low, medium, high ]
       - type: climate-swing-modes
         style: dropdown
 
@@ -19,17 +19,27 @@ cards:
     square: false
     cards:
       - type: tile
+        entity: switch.konditsioner_tikhii
+        name: Тихий
+        vertical: true
+        tap_action: { action: toggle }
+      - type: tile
+        entity: switch.konditsioner_turbo
+        name: Турбо
+        vertical: true
+        tap_action: { action: toggle }
+      - type: tile
         entity: switch.konditsioner_son
         name: Сон
         vertical: true
         tap_action: { action: toggle }
       - type: tile
-        entity: switch.konditsioner_dispalei_podsvetka
+        entity: switch.konditsioner_displei
         name: Дисплей
         vertical: true
         tap_action: { action: toggle }
       - type: tile
-        entity: switch.konditsioner_ionizator_listochek
+        entity: switch.konditsioner_ionizator
         name: Ионизатор
         vertical: true
         tap_action: { action: toggle }

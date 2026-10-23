@@ -9,6 +9,7 @@ DEPENDENCIES = ["uart"]
 CONF_DISPLAY_SWITCH = "display_switch"
 CONF_IONIZER_SWITCH = "ionizer_switch"
 CONF_SLEEP_SWITCH = "sleep_switch"
+CONF_QUIET_SWITCH = "quiet_switch"
 CONF_TURBO_SWITCH = "turbo_switch"
 CONF_TIMER_NUMBER = "timer_number"
 CONF_TIMER_REMAINING_SENSOR = "timer_remaining_sensor"
@@ -24,6 +25,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_DISPLAY_SWITCH): cv.use_id(switch.Switch),
             cv.Optional(CONF_IONIZER_SWITCH): cv.use_id(switch.Switch),
             cv.Optional(CONF_SLEEP_SWITCH): cv.use_id(switch.Switch),
+            cv.Optional(CONF_QUIET_SWITCH): cv.use_id(switch.Switch),
             cv.Optional(CONF_TURBO_SWITCH): cv.use_id(switch.Switch),
             cv.Optional(CONF_TIMER_NUMBER): cv.use_id(number.Number),
             cv.Optional(CONF_TIMER_REMAINING_SENSOR): cv.use_id(sensor.Sensor),
@@ -38,6 +40,7 @@ _SWITCHES = {
     CONF_DISPLAY_SWITCH: "set_display_switch",
     CONF_IONIZER_SWITCH: "set_ionizer_switch",
     CONF_SLEEP_SWITCH: "set_sleep_switch",
+    CONF_QUIET_SWITCH: "set_quiet_switch",
     CONF_TURBO_SWITCH: "set_turbo_switch",
 }
 
