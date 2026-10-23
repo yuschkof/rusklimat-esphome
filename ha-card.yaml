@@ -14,34 +14,41 @@ cards:
       - type: climate-swing-modes
         style: dropdown
 
+  # Доп. функции одной строкой: только иконка и подпись, без «Включено/Выключено».
+  # Включённая плитка подсвечивается цветом.
   - type: grid
-    columns: 3
+    columns: 5
     square: false
     cards:
       - type: tile
         entity: switch.konditsioner_tikhii_rezhim
         name: Тихий
         vertical: true
+        hide_state: true
         tap_action: { action: toggle }
       - type: tile
         entity: switch.konditsioner_turbo
         name: Турбо
         vertical: true
+        hide_state: true
         tap_action: { action: toggle }
       - type: tile
         entity: switch.konditsioner_son
         name: Сон
         vertical: true
+        hide_state: true
         tap_action: { action: toggle }
       - type: tile
         entity: switch.konditsioner_displei
         name: Дисплей
         vertical: true
+        hide_state: true
         tap_action: { action: toggle }
       - type: tile
         entity: switch.konditsioner_rezhim_eko
         name: Ионизатор
         vertical: true
+        hide_state: true
         tap_action: { action: toggle }
 
   - type: tile
