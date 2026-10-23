@@ -1,7 +1,7 @@
 import esphome.codegen as cg
+from esphome.components import climate, number, sensor, switch, uart
 import esphome.config_validation as cv
-from esphome.components import climate, uart, switch, number, sensor
-from esphome.const import CONF_ID
+
 from . import rusklimat_ns
 
 DEPENDENCIES = ["uart"]
@@ -18,24 +18,7 @@ RusklimatClimate = rusklimat_ns.class_(
     "RusklimatClimate", climate.Climate, cg.PollingComponent, uart.UARTDevice
 )
 
-CONFIG_SCHEMA = (
-    climate.climate_schema(RusklimatClimate)
-    .extend(
-        {
-            cv.Optional(CONF_DISPLAY_SWITCH): cv.use_id(switch.Switch),
-            cv.Optional(CONF_IONIZER_SWITCH): cv.use_id(switch.Switch),
-            cv.Optional(CONF_SLEEP_SWITCH): cv.use_id(switch.Switch),
-            cv.Optional(CONF_QUIET_SWITCH): cv.use_id(switch.Switch),
-            cv.Optional(CONF_TURBO_SWITCH): cv.use_id(switch.Switch),
-            cv.Optional(CONF_TIMER_NUMBER): cv.use_id(number.Number),
-            cv.Optional(CONF_TIMER_REMAINING_SENSOR): cv.use_id(sensor.Sensor),
-        }
-    )
-    .extend(uart.UART_DEVICE_SCHEMA)
-    .extend(cv.polling_component_schema("2s"))
-)
-
-# conf key -> setter компонента
+# Необязательные ссылки на template-сущности: компонент публикует в них состояние из статуса кондиционера.
 _SWITCHES = {
     CONF_DISPLAY_SWITCH: "set_display_switch",
     CONF_IONIZER_SWITCH: "set_ionizer_switch",
@@ -44,11 +27,33 @@ _SWITCHES = {
     CONF_TURBO_SWITCH: "set_turbo_switch",
 }
 
+CONFIG_SCHEMA = (
+    climate.climate_schema(RusklimatClimate)
+    .extend(
+        {
+            **{cv.Optional(key): cv.use_id(switch.Switch) for key in _SWITCHES},
+            cv.Optional(CONF_TIMER_NUMBER): cv.use_id(number.Number),
+            cv.Optional(CONF_TIMER_REMAINING_SENSOR): cv.use_id(sensor.Sensor),
+        }
+    )
+    .extend(uart.UART_DEVICE_SCHEMA)
+    .extend(cv.polling_component_schema("2s"))
+)
+
+FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
+    "rusklimat",
+    baud_rate=9600,
+    require_tx=True,
+    require_rx=True,
+    data_bits=8,
+    parity="NONE",
+    stop_bits=1,
+)
+
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await climate.new_climate(config)
     await cg.register_component(var, config)
-    await climate.register_climate(var, config)
     await uart.register_uart_device(var, config)
 
     for key, setter in _SWITCHES.items():

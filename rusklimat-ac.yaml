@@ -2,27 +2,38 @@ esphome:
   name: rusklimat-ac
   friendly_name: Кондиционер
 
+# ESP32-WROOM-32 (ESP32 DevKit). Другие платы — раздел «Другие платы» в README.
 esp32:
   board: esp32dev
   framework:
     type: esp-idf
 
 external_components:
-  - source: github://yuschkof/rusklimat-esphome@main
+  # Закреплённая версия. Для самой свежей — @main и refresh: 0s.
+  - source: github://yuschkof/rusklimat-esphome@v1.0.0
     components: [rusklimat]
-    refresh: 0s  # пока идёт отладка; для стабильной версии закрепить тег (@v1.0.0) и убрать
 
 logger:
-  level: INFO  # Поставь DEBUG, если понадобятся подробные логи ACK
+  level: INFO  # DEBUG — изменения статуса побайтно и отправляемые команды, VERBOSE — ещё и ACK
 
+# Ключи и пароли — в secrets.yaml (пример: secrets.example.yaml)
 api:
+  encryption:
+    key: !secret api_encryption_key
 
 ota:
   - platform: esphome
+    password: !secret ota_password
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Если домашняя сеть недоступна, ESP поднимет свою точку доступа для настройки Wi-Fi
+  ap:
+    ssid: "Rusklimat AC Fallback"
+    password: !secret fallback_ap_password
+
+captive_portal:
 
 uart:
   id: ac_uart

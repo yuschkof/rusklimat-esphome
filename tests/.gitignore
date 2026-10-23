@@ -1,0 +1,3 @@
+# secrets.yaml здесь с фиктивными значениями для CI — его коммитим
+/.esphome/
+/_example.yaml

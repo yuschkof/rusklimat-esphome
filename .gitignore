@@ -1,4 +1,6 @@
 secrets.yaml
+!tests/secrets.yaml
+tests/_example.yaml
 .esphome/
 __pycache__/
 /test/

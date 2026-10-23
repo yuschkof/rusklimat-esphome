@@ -1,0 +1,6 @@
+# Пример как есть: ESP32-WROOM-32. _example.yaml генерирует tests/prepare.sh.
+packages:
+  example: !include _example.yaml
+
+esphome:
+  build_path: .esphome/build/esp32dev  # своя папка сборки: у всех тестов одинаковое имя устройства
