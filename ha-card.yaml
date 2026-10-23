@@ -1,0 +1,37 @@
+# Карточка для дашборда Home Assistant: термостат + доп. функции кондиционера в одном блоке.
+# Дашборд → «Изменить» → «Добавить карточку» → «Вручную» → вставить это.
+# entity_id ниже — предположение; сверь в «Настройки → Устройства → Кондиционер» и поправь.
+type: vertical-stack
+cards:
+  - type: thermostat
+    entity: climate.konditsioner
+    features:
+      - type: climate-hvac-modes
+        hvac_modes: [ "off", cool, heat, dry, fan_only, auto ]
+      - type: climate-fan-modes
+        style: dropdown
+        fan_modes: [ auto, quiet, low, medium, high, "Турбо", "Сон" ]
+      - type: climate-swing-modes
+        style: dropdown
+
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: tile
+        entity: switch.konditsioner_dispalei_podsvetka
+        name: Дисплей
+        vertical: true
+        tap_action: { action: toggle }
+      - type: tile
+        entity: switch.konditsioner_ionizator_listochek
+        name: Ионизатор
+        vertical: true
+        tap_action: { action: toggle }
+
+  - type: tile
+    entity: number.konditsioner_taimer_chasy
+    name: Таймер
+    features:
+      - type: numeric-input
+        style: slider

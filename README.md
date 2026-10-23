@@ -23,21 +23,23 @@ climate:
     # всё ниже — необязательно, ссылки на template-сущности
     display_switch: sw_display
     ionizer_switch: sw_ionizer
-    sleep_switch: sw_sleep
-    turbo_switch: sw_turbo
     timer_number: num_timer
     timer_remaining_sensor: sens_timer_remaining
 ```
 
 Переключатели, таймер и датчик остатка — обычные `template`-сущности, которые вызывают методы
-`set_display()`, `set_ionizer()`, `set_sleep()`, `set_turbo()`, `set_timer_hours()`.
+`set_display()`, `set_ionizer()`, `set_timer_hours()`.
+
+Турбо и Сон — дополнительные скорости вентилятора «Турбо» и «Сон» в карточке климата,
+взаимоисключающие между собой и с «Тихим». Если нужны ещё и отдельные переключатели,
+подключите их через `sleep_switch` / `turbo_switch` с методами `set_sleep()` / `set_turbo()`.
 Полный пример — [rusklimat-ac.yaml](rusklimat-ac.yaml).
 
 > **Важно:** у template-переключателей ставьте `restore_mode: DISABLED`. Со значением по умолчанию
 > (`ALWAYS_OFF`) при каждой загрузке ESP выполняется `turn_off_action`, и кондиционер выключается.
 
 Поддерживается: питание, режимы (auto/cool/dry/heat/fan), уставка 16–32 °C, температура в комнате,
-вентилятор (auto/quiet/low/medium/high), жалюзи (вертикаль/горизонталь/обе), дисплей, ионизатор, сон, турбо,
+вентилятор (auto/quiet/low/medium/high/Турбо/Сон), жалюзи (вертикаль/горизонталь/обе), дисплей, ионизатор,
 таймер выключения 1–24 ч.
 
 ## Протокол
