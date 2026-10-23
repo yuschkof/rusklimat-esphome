@@ -10,14 +10,19 @@ cards:
         hvac_modes: [ "off", cool, heat, dry, fan_only, auto ]
       - type: climate-fan-modes
         style: dropdown
-        fan_modes: [ auto, quiet, low, medium, high, "Турбо", "Сон" ]
+        fan_modes: [ auto, quiet, low, medium, high, "Турбо" ]
       - type: climate-swing-modes
         style: dropdown
 
   - type: grid
-    columns: 2
+    columns: 3
     square: false
     cards:
+      - type: tile
+        entity: switch.konditsioner_son
+        name: Сон
+        vertical: true
+        tap_action: { action: toggle }
       - type: tile
         entity: switch.konditsioner_dispalei_podsvetka
         name: Дисплей

@@ -40,8 +40,9 @@ climate:
     uart_id: ac_uart
     display_switch: sw_display
     ionizer_switch: sw_ionizer
-    # Сон и Турбо — в списке скоростей вентилятора. Отдельные переключатели
-    # по-прежнему можно подключить через sleep_switch / turbo_switch.
+    sleep_switch: sw_sleep
+    # Турбо — в списке скоростей вентилятора. Отдельный переключатель
+    # по-прежнему можно подключить через turbo_switch.
     timer_number: num_timer
     timer_remaining_sensor: sens_timer_remaining
 
@@ -72,6 +73,18 @@ switch:
     turn_off_action:
       - lambda: |-
           id(main_ac).set_ionizer(false);
+
+  - platform: template
+    id: sw_sleep
+    name: "Сон"
+    icon: mdi:power-sleep
+    restore_mode: DISABLED
+    turn_on_action:
+      - lambda: |-
+          id(main_ac).set_sleep(true);
+    turn_off_action:
+      - lambda: |-
+          id(main_ac).set_sleep(false);
 
 number:
   - platform: template
